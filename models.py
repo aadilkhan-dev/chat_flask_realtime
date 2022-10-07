@@ -26,6 +26,13 @@ class FriendRequest(db.Model):
         db.session.commit()
         return self
 
+    def update(self,accepted=False,set_accepted=False):
+        if accepted:
+            self.accepted = set_accepted
+            db.session.commit()
+            return self
+
+
 
 class ConectedUser(db.Model):
     id = db.Column(db.String(50),primary_key=True)
@@ -35,6 +42,16 @@ class ConectedUser(db.Model):
         db.session.add(self)
         db.session.commit()
         return self
+
+    def update(self,id=False,username=False,set_id=None,set_username=None):
+        if id :
+            self.id = set_id
+            db.session.commit()
+        if username:
+            self.user_name = set_username
+            db.session.commit()
+        return self
+
     def delete(self):
         db.session.delete(self)
         db.session.commit()

@@ -26,12 +26,24 @@ Messages |
                     </div>
 
                     {% for i in friends %}
+                    {% if i.friend == current_user.username %}
+                                
+                    
+                    <a href="/chat/{{i.user.username}}" class="list-group-item list-group-item-action border-0">
+                    {% else %}
                     <a href="/chat/{{i.friend}}" class="list-group-item list-group-item-action border-0">
+                    {% endif %}
                         <div class="badge bg-success float-right"></div>
                         <div class="d-flex align-items-start">
                             <img src="" class="rounded-circle mr-1" alt="" width="40" height="40">
                             <div class="flex-grow-1 ml-3">
+
+                                {% if i.friend == current_user.username %}
+                                
+                                {{i.user.username}}
+                                {% else %}
                                 {{i.friend}}
+                                {% endif %}
                                 <div class="small"><span class="fas fa-circle chat-online"></span> Online</div>
                             </div>
                         </div>
@@ -54,21 +66,30 @@ Messages |
              
                     <a href="" class="list-group-item list-group-item-action border-0">
                         <div class="badge bg-success float-right"></div>
+
+                        {% for i in friend_requests  %}
                         <div class="d-flex align-items-start">
                             
                             <div class="flex-grow-1 ml-3">
-                               demo Requests
-
-
+                               {{i.user.username}}
                                 
                             </div>
-                            <button class=" btn btn-primary mx-2">
+
+                            <form action="/accept/{{i.id}}/" method="POST">
+                            <button type="submit" class="btn btn-primary mx-2">
                                 Accept 
                                </button>
-                               <button class=" btn btn-danger">
+                            </form>
+
+                            <button class=" btn btn-danger">
                                 Reject
-                               </button>
+                            </button>
+                         
                         </div>
+                        
+                        
+                        {% endfor %}
+                        
                     </a>
                 
 

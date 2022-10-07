@@ -1,12 +1,12 @@
 import jwt
 import datetime
 from flask import Blueprint,request,render_template,make_response
-from sqlalchemy import true
 from schemas import UserSchema,FriendRequestSchema
 from models import User,FriendRequest,ConectedUser
 from passlib.hash import bcrypt
 from functools import wraps
 from flask_socketio import SocketIO
+from sqlalchemy import or_
 
 
 
@@ -15,6 +15,10 @@ SECRET_KEY = 'eb38195ecc20b6675a4868e8f79c0d0b'
 
 api = Blueprint('api',__name__,template_folder='/templates')
 socketio = SocketIO()
+
+
+
+################################# AUTHENTICATION SECTION ################################
 
 def login_required(f):
     @wraps(f)
@@ -62,6 +66,15 @@ def LoginView():
 
 
 
+
+
+##############################################################################################
+
+
+
+
+################################### FRIEND REQUEST SECTION ###################################
+
 @api.route('/sendrequest/<int:id>/',methods=['POST'])
 @login_required
 def SendRequestView(current_user,id):
@@ -73,19 +86,42 @@ def SendRequestView(current_user,id):
         friend_request.create()
         return friend_schema.dump(user),201
 
-@api.route('/sendmessage/<string:id>/',methods=['POST'])
+
+
+@api.route('/accept/<int:id>/',methods=['POST'])
 @login_required
-def SendMessage(current_user,id):
-    socketio.emit({'msg':f'hello message from {current_user}' },room=id)
-    return {'success':'successfully sended'},200
+def AcceptRequestView(current_user,id):
+    get_request = FriendRequest.query.get(id)
+    get_request.update(accepted=True,set_accepted=True)
+    return {'message':'Sueccessfully accepted!!'},200
 
 
+
+
+
+###############################################################################################
+
+
+#################################### CHAT SECTION ########################################
 
 @api.route('/messages/',methods=['GET'])
 @login_required
 def ChatFeedMessage(current_user):
-    friends = FriendRequest.query.filter_by(user=current_user,accepted=True).all()
-    return render_template('messages.html',friends=friends)
+    friends = FriendRequest.query.filter(((FriendRequest.user==current_user)|(FriendRequest.friend==current_user.username)) &(FriendRequest.accepted==True)).all()
+    friend_requests= FriendRequest.query.filter_by(friend=current_user.username,accepted=False).all()
+    return render_template('messages.html',friends=friends,friend_requests=friend_requests,current_user=current_user)
+
+
+@socketio.on('connect')
+@login_required
+def connect(current_user):
+    get_connected_user  = ConectedUser.query.filter_by(user_name=current_user.username).first()
+    if not get_connected_user:
+        connected_user = ConectedUser(id=request.sid,user_name=current_user.username)
+        connected_user.create()
+    else:
+        get_connected_user.update(id=True,set_id=request.sid)
+
 
 
 @api.route('/chat/<string:username>/',methods=['GET'])
@@ -97,14 +133,15 @@ def ChatView(current_user,username):
 
     return render_template('chat.html',friend=username)
     
-
-@socketio.on('connect')
+@api.route('/sendmessage/<string:id>/',methods=['POST'])
 @login_required
-def connect(current_user):
-    get_connected_user  = ConectedUser.query.filter_by(user_name=current_user.username).first()
-    if not get_connected_user:
-        connected_user = ConectedUser(id=request.sid,user_name=current_user.username)
-        connected_user.create() 
+def SendMessage(current_user,id):
+    socketio.emit({'msg':f'hello message from {current_user}' },room=id)
+    return {'success':'successfully sended'},200
+
+
+    
+
 
 @socketio.on('disconnect')
 @login_required
